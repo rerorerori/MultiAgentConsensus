@@ -93,7 +93,20 @@ def main():
     parser.add_argument("--log", type=str, default=None, help="Log dosyasının yolu")
     parser.add_argument("--nav", default="ekf", choices=["ground_truth", "ekf"])
     parser.add_argument("--fixed_weight", action="store_true", help="Ablasyon: adaptif w_ij yerine sabit epsilon")
+    parser.add_argument("--current_mag", type=float, default=0.2236, help="Akıntı büyüklüğü (m/s). Yön korunur, büyüklük ölçeklenir.")
+    parser.add_argument("--seed", type=int, default=42, help="Rastgelelik tohumu (seed)")
     args = parser.parse_args()
+
+    # Seed ayarla
+    np.random.seed(args.seed)
+
+    # Akıntı büyüklüğünü ölçekle (mevcut yön korunur, büyüklük ayarlanır)
+    base_curr_nom = np.array(BASE_CURRENT_NED, dtype=float)
+    nom_mag = float(np.linalg.norm(base_curr_nom[:2]))
+    if nom_mag > 1e-6:
+        base_current_vec = base_curr_nom * (args.current_mag / nom_mag)
+    else:
+        base_current_vec = np.array([-args.current_mag, 0.0, 0.0])
 
     mode     = args.mode
     nav_mode = args.nav
@@ -101,7 +114,7 @@ def main():
     print(f"  Swarm AUV — V2: Hidrodinamik Akıntı Modeli (Fossen V_c/beta_c)")
     print(f"  Mode: {mode.upper()} | Navigation: {nav_mode.upper()}")
     print(f"  Weight: {'FIXED (ablation)' if args.fixed_weight else 'ADAPTIVE (w_ij)'}")
-    print(f"  Okyanus Akintisi: {'AKTIF (Gauss-Markov -> Fossen)' if USE_OCEAN_CURRENT else 'PASIF'}")
+    print(f"  Okyanus Akintisi: {'AKTIF (Gauss-Markov -> Fossen)' if USE_OCEAN_CURRENT else 'PASIF'} | Mag: {args.current_mag:.2f} m/s | Seed: {args.seed}")
     print("=" * 77)
 
     comm_mgr  = CommManager()
@@ -157,7 +170,7 @@ def main():
         # Akıntı artık Fossen torpedo modelinin V_c/beta_c üzerinden uygulanıyor.
         # Kinematik pozisyon offset birikimi (current_drifts) yoktur.
         dt = 1.0 / TICKS_PER_SEC
-        current_ned    = np.array(BASE_CURRENT_NED, dtype=float)
+        current_ned    = base_current_vec.copy()
         turbulence_ned = np.zeros(3)
         current_nwu    = np.zeros(3)  # log/EKF icin tutulur
 
@@ -183,7 +196,7 @@ def main():
                 turbulence_ned = (turbulence_ned
                                   - (turbulence_ned / CURRENT_TAU) * dt
                                   + np.sqrt(CURRENT_NOISE_VAR) * np.sqrt(dt) * noise)
-                current_ned = np.array(BASE_CURRENT_NED, dtype=float) + turbulence_ned
+                current_ned = base_current_vec + turbulence_ned
 
                 # Akinti normunu pencereye ekle (min/max takibi)
                 c_norm = float(np.linalg.norm(current_ned[:2]))
@@ -275,6 +288,11 @@ def main():
                     planners[name].current_target = None
                     planners[name].global_target = None
                     planners[name]._last_global_replan_tick = -99999
+                elif stuck.status[name] == "RECOVERING" and stuck.is_done(name, sim_time):
+                    stuck.finish_recovery(name, pos, sim_time)
+                    planners[name].current_target = None
+                    planners[name].global_target = None
+                    planners[name]._last_global_replan_tick = -99999
 
                 # APF & Sınırlar
                 final_rpm_used = CRUISE_RPM
@@ -320,12 +338,12 @@ def main():
                         F_total = current_vec + F_rep * blend
                         final_h = wrap_heading(np.degrees(np.arctan2(F_total[1], F_total[0])))
 
-                    # Sınır dışı
+                    # Sınır dışı acil merkeze dönüş
                     if abs(pos[0]) > 170.0 or abs(pos[1]) > 170.0:
-                        inward_x = np.clip(pos[0], -150.0, 150.0)
-                        inward_y = np.clip(pos[1], -150.0, 150.0)
+                        inward_h = np.degrees(np.arctan2(-pos[1], -pos[0]))
+                        final_h = wrap_heading(inward_h)
                         final_rpm = MIN_RPM + 300
-                        targets[name] = np.array([inward_x, inward_y])
+                        targets[name] = np.array([0.0, 0.0])
 
                     final_rpm_used = final_rpm
 
@@ -333,8 +351,14 @@ def main():
 
                     fossen.set_goal(name, depth=max(0.5, cmd_depth), heading=final_h, rpm=final_rpm)
                 else:
-                    fossen.set_goal(name, depth=max(0.5, stuck.recovery_depth[name]), heading=stuck.recovery_heading[name], rpm=RECOVERY_RPM)
-                    final_rpm_used = RECOVERY_RPM
+                    if abs(pos[0]) > 170.0 or abs(pos[1]) > 170.0:
+                        stuck.finish_recovery(name, pos, sim_time)
+                        inward_h = np.degrees(np.arctan2(-pos[1], -pos[0]))
+                        fossen.set_goal(name, depth=max(0.5, CRUISE_DEPTH), heading=wrap_heading(inward_h), rpm=MIN_RPM + 300)
+                        final_rpm_used = MIN_RPM + 300
+                    else:
+                        fossen.set_goal(name, depth=max(0.5, stuck.recovery_depth[name]), heading=stuck.recovery_heading[name], rpm=RECOVERY_RPM)
+                        final_rpm_used = RECOVERY_RPM
 
                 # ── EKF SEYRÜSEFER (AKINTI TAHMİNLİ) ──
                 dr_state = None
@@ -346,6 +370,7 @@ def main():
                     # Fossen akıntıyı modelliyor → AUV zaten akıntıyla hareket ediyor
                     # → DVLSensor yer hızını (akıntı dahil) doğal olarak ölçüyor
                     dvl_raw = states[name].get("DVLSensor").copy() if "DVLSensor" in states[name] else None
+                    mag_raw = states[name].get("MagnetometerSensor", None)
 
                     dep_raw = states[name].get("DepthSensor")
                     depth_m = float(abs(dep_raw[0])) if dep_raw is not None and len(dep_raw) > 0 else abs(float(pos[2]))
@@ -366,6 +391,8 @@ def main():
                             dvl_input = np.array(dvl_raw, dtype=float) if dvl_raw is not None else None
                             nav.update_dvl(dvl_input, rpm=final_rpm_used)
                         nav.update_depth(depth_m)
+                        if mag_raw is not None:
+                            nav.update_magnetometer(mag_raw)
 
                         if step >= 90:
                             dr_state = nav.get_fossen_state(dynamics_shifted)
@@ -394,6 +421,12 @@ def main():
                     sd_entry["nav_error"] = nav_err
                     sd_entry["ekf_x"] = ekf_x
                     sd_entry["ekf_y"] = ekf_y
+                    sd_entry["curr_true_n"] = current_ned[0]
+                    sd_entry["curr_true_e"] = current_ned[1]
+                    sd_entry["curr_true_mag"] = float(np.linalg.norm(current_ned[:2]))
+                    sd_entry["curr_est_n"] = navigators[name].x_current[0]
+                    sd_entry["curr_est_e"] = navigators[name].x_current[1]
+                    sd_entry["curr_est_mag"] = float(np.linalg.norm(navigators[name].x_current[:2]))
 
                 agents_metadata[name] = sd_entry
                 if dashboard:

@@ -18,7 +18,7 @@ TICKS_PER_SEC = 30
 # NAVİGASYON
 # ═══════════════════════════════════════════════════════════════
 CRUISE_RPM    = 1500
-CRUISE_DEPTH  = 220.0
+CRUISE_DEPTH  = 150.0
 MIN_RPM       = 800
 MAX_RPM       = 1500
 WP_ACCEPT_R   = 15.0      # waypoint kabul yarıçapı (hassasiyet artırıldı)
