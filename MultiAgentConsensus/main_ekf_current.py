@@ -1,12 +1,51 @@
 """
 Swarm AUV — Okyanus akıntısı altında EKF navigasyonu ile kooperatif haritalama.
 
-Kullanım:
+Kullanım örnekleri:
+    python main_ekf_current.py                                  # dashboard açık, entropi güdümü
     python main_ekf_current.py --headless --duration 9000 --log logs/run.m
-    python main_ekf_current.py --no_current_comp ...        # baseline: akıntı telafisiz
-    python main_ekf_current.py --dvl_outage 120 180 ...     # 120-180 s arası DVL kesintisi (tüm araçlar)
-    python main_ekf_current.py --dvl_outage 120 180 --outage_agents auv1    # yalnızca auv1
-    python main_ekf_current.py --no_range_aid ...           # akustik mesafe güncellemesi kapalı
+    python main_ekf_current.py --guidance survey --seed 1       # şerit tarama güdümü
+    python main_ekf_current.py --collision_avoidance            # çarpışmadan kaçınma açık
+    python main_ekf_current.py --dvl_outage 120 180 --outage_agents auv1
+
+Bayraklar (hiçbiri verilmezse: entropi güdümü, EKF seyrüseferi, akıntı telafisi, konsensüs ve
+akustik mesafe desteği açık; çarpışmadan kaçınma kapalı):
+
+  Koşu
+    --headless               Dashboard ve görüntü penceresi olmadan çalıştır.
+    --duration N             Simülasyon süresi (tick; 30 tick = 1 s). 0 = sınırsız. Tüm araçlar
+                             başlangıç noktasına dönünce koşu kendiliğinden biter.
+    --log YOL                Log dosyası (.m); aynı adla .csv seyrüsefer logu da yazılır.
+    --seed N                 Akıntı ve akustik kanal rastgeleliğinin tohumu (varsayılan 42).
+    --current_mag V          Ortalama akıntı büyüklüğü, m/s (varsayılan 0.2236).
+
+  Güdüm
+    --guidance entropy       Entropi/frontier planlayıcı (varsayılan; core/entropy_planner.py).
+    --guidance survey        Sabit şerit tarama + hat takibi (core/survey_guidance.py).
+                             Araçlar arası haberleşmeye ihtiyaç duymayan klasik yöntem.
+    --lane_spacing M         survey güdümünde şerit aralığı, m (varsayılan 130 = 150 m tarama
+                             genişliği - 20 m örtüşme).
+    --collision_avoidance    Komşuların beacon'da bildirdiği konuma göre, en yakın geçiş
+                             mesafesine (CPA) dayalı baş açısı düzeltmesi
+                             (core/collision_avoidance.py). İki güdümle de çalışır.
+
+  Seyrüsefer
+    --nav ekf|ground_truth   Haritalama ve planlamada kullanılan konum (varsayılan ekf).
+    --no_current_comp        Baseline: akıntı kestirimi ve telafisi kapalı.
+    --dvl_outage T0 T1       T0-T1 saniyeleri arasında DVL ölçümü filtreye verilmez.
+    --outage_agents A [B..]  DVL kesintisinin uygulanacağı araçlar (varsayılan: hepsi).
+    --no_range_aid           Beacon'lardan gelen akustik mesafe ölçümünü EKF'e verme.
+
+  Haritalama ve haberleşme (ablasyon)
+    --no_scan_in_turn        Araç dönerken (son 2 s ortalaması > 2 derece/s) sonar verisini
+                             kapsama haritasına işleme.
+    --no_consensus           Komşulardan gelen harita güncellemelerini uygulama
+                             (hedef ve konum bildirimi sürer).
+    --fixed_weight           Adaptif w_ij yerine sabit konsensüs ağırlığı.
+    --oracle_neighbor_maps   Planlayıcıya komşu haritalarını akustik kanal olmadan doğrudan ver
+                             (ideal haberleşme üst sınırı).
+
+Koşuları karşılaştırmak için: python compare_guidance.py etiket=log_yolu ...
 """
 
 import sys, os
@@ -32,6 +71,8 @@ from config_current import (
 
 from core.consensus import ConsensusMapFusion
 from core.entropy_planner import EntropyGuidedPlanner
+from core.survey_guidance import SurveyGuidance, LANE_OVERRUN_M, TURN_RADIUS_M
+from core.collision_avoidance import CollisionAvoidance
 from core.comm_quality import CommQualityMonitor
 from core.comm_manager import CommManager, RANGE_SIGMA_M
 from core.stuck_detector import StuckDetector
@@ -44,6 +85,9 @@ from core.status_report import format_status
 APF_INFLUENCE_DIST = 50.0
 APF_K_REP = 800.0
 SAFE_MARGIN = 170.0
+# Şerit tarama güdümünde dönüşler alanın dışında yapılır; sınır itimi bu payın ötesinde başlar
+SURVEY_SAFE_MARGIN = SAFE_MARGIN + 30.0 + LANE_OVERRUN_M + 3.0 * TURN_RADIUS_M + APF_INFLUENCE_DIST
+SCAN_MAX_TURN_RATE_DPS = 2.0   # --no_scan_in_turn: son 2 s'deki ortalama dönüş hızı bunu aşarsa tarama sayılmaz
 
 DVL_DECIMATION  = 3     # 30 Hz simülasyon → 10 Hz DVL güncellemesi
 NAV_WARMUP_TICKS = 90   # EKF çıktısı bu adımdan sonra kontrol ve planlamada kullanılır
@@ -76,6 +120,14 @@ def main():
                              "(hedef ve konum bildirimi sürer)")
     parser.add_argument("--no_range_aid", action="store_true",
                         help="Beacon'lardan gelen akustik mesafe ölçümünü EKF'e verme")
+    parser.add_argument("--guidance", default="entropy", choices=["entropy", "survey"],
+                        help="entropy: entropi/frontier planlayıcı (varsayılan); survey: sabit şerit tarama + hat takibi")
+    parser.add_argument("--lane_spacing", type=float, default=None,
+                        help="survey güdümünde şerit aralığı (m). Varsayılan: tarama genişliği - örtüşme")
+    parser.add_argument("--collision_avoidance", action="store_true",
+                        help="Komşuların beacon'da bildirdiği konuma göre CPA tabanlı çarpışmadan kaçınma")
+    parser.add_argument("--no_scan_in_turn", action="store_true",
+                        help="Araç dönerken sonar verisini kapsama haritasına işleme")
     args = parser.parse_args()
 
     # Seed ayarla (akustik kanal modeli random modülünü kullanır)
@@ -116,8 +168,23 @@ def main():
     )
 
 
-    planners = {name: EntropyGuidedPlanner(consensus.maps[name], agent_name=name, consensus=consensus)
-                for name in AGENT_NAMES}
+    if args.guidance == "survey":
+        # Görev öncesi plan: şeritler araçlara başlangıç konumlarının batı-doğu sırasına göre paylaştırılır
+        with open(SCENARIO_PATH, "r") as f:
+            start_y = {a["agent_name"]: a["location"][1] for a in json.load(f)["agents"]}
+        by_y = sorted(AGENT_NAMES, key=lambda n: start_y[n])
+        planners = {name: SurveyGuidance(name, by_y.index(name), len(AGENT_NAMES), lane_spacing=args.lane_spacing)
+                    for name in AGENT_NAMES}
+        safe_margin = SURVEY_SAFE_MARGIN
+        for name in AGENT_NAMES:
+            print(f"[SURVEY] {name}: şeritler (y, m) = {planners[name].lanes.round(1).tolist()}", flush=True)
+    else:
+        planners = {name: EntropyGuidedPlanner(consensus.maps[name], agent_name=name, consensus=consensus)
+                    for name in AGENT_NAMES}
+        safe_margin = SAFE_MARGIN
+    yaw_hist = {n: [] for n in AGENT_NAMES}           # son 2 s'nin yaw değerleri (dönüş tespiti)
+    avoiders = {n: CollisionAvoidance(n) for n in AGENT_NAMES} if args.collision_avoidance else {}
+    avoiding = {n: None for n in AGENT_NAMES}         # o anda kaçınılan komşu
 
     targets = {n: None for n in AGENT_NAMES}
     agents_metadata = {n: {} for n in AGENT_NAMES}
@@ -266,8 +333,17 @@ def main():
                 vel_raw = states[name].get("VelocitySensor", np.zeros(3))
                 vel = float(np.linalg.norm(vel_raw[:2]))
 
+                # Dönüşte toplanan yan taramalı sonar görüntüsü kullanılamaz (bkz. MOOS-IvP uFldHazardSensor)
+                yaw_hist[name].append(yaw)
+                if len(yaw_hist[name]) > 2 * TICKS_PER_SEC:
+                    yaw_hist[name].pop(0)
+                turn_rate_dps = abs(heading_diff(np.degrees(yaw_hist[name][0]), hdg)) / (len(yaw_hist[name]) / TICKS_PER_SEC)
+                scanning = not (args.no_scan_in_turn and turn_rate_dps > SCAN_MAX_TURN_RATE_DPS)
+
                 ss_data = states[name].get("SSS", states[name].get("SidescanSonar"))
-                if ss_data is not None and len(ss_data) > 0:
+                if not scanning:
+                    pass
+                elif ss_data is not None and len(ss_data) > 0:
                     consensus.maps[name].bayesian_update_from_sidescan(pos, yaw, ss_data)
                 else:
                     consensus.update_local(name, pos, yaw)
@@ -296,7 +372,7 @@ def main():
                     planners[name].global_target = None
                     planners[name]._last_global_replan_tick = -99999
 
-                out_of_bounds = abs(pos[0]) > SAFE_MARGIN or abs(pos[1]) > SAFE_MARGIN
+                out_of_bounds = abs(pos[0]) > safe_margin or abs(pos[1]) > safe_margin
                 inward_h = wrap_heading(np.degrees(np.arctan2(-pos[1], -pos[0])))
 
                 if stuck.status[name] == "OK":
@@ -314,6 +390,10 @@ def main():
                         current_along_track = float(np.dot(navigators[name].get_current_nwu()[:2], heading_vec))
                     planners[name].wp_accept_r = 15.0 + 15.0 * max(0.0, current_along_track)
 
+                    if not mission_done[name] and getattr(planners[name], "done", False):
+                        mission_done[name] = True
+                        print(f"[MISSION] {name}: şeritler tamamlandı (t={sim_time:.0f} s, kendi haritası "
+                              f"%{consensus.get_coverage_pct(name):.1f}), başlangıç noktasına dönüyor", flush=True)
                     if not mission_done[name] and consensus.get_coverage_pct(name) >= MISSION_COMPLETE_PCT:
                         mission_done[name] = True
                         print(f"[MISSION] {name}: harita tamamlandı (t={sim_time:.0f} s), başlangıç noktasına dönüyor", flush=True)
@@ -331,6 +411,20 @@ def main():
                             pos, yaw, step, neighbor_grids=neighbor_grids, sim_time=sim_time)
                     targets[name] = tgt_wp
 
+                    # Çarpışmadan kaçınma: güdümün istediği baş açısı, komşularla öngörülen
+                    # en yakın geçiş mesafesine göre düzeltilir
+                    if name in avoiders:
+                        tgt_h = avoiders[name].adjust(pos, tgt_h, vel, sim_time)
+                        other = avoiders[name].active_with
+                        if other != avoiding[name]:
+                            msg = (f"[AVOID] {name}: {other} ile öngörülen en yakın geçiş "
+                                   f"{avoiders[name].min_cpa:.0f} m, kaçınıyor (t={sim_time:.0f} s)"
+                                   if other else f"[AVOID] {name}: kaçınma bitti (t={sim_time:.0f} s)")
+                            print(msg, flush=True)
+                            if dashboard:
+                                dashboard.comm_log.append(msg)
+                            avoiding[name] = other
+
                     if abs(heading_diff(hdg, tgt_h)) > UTURN_THRESH:
                         tgt_rpm = MIN_RPM + 200
 
@@ -339,8 +433,8 @@ def main():
 
                     # APF Sınır İtimi
                     px, py = float(pos[0]), float(pos[1])
-                    dx_edge = SAFE_MARGIN - abs(px)
-                    dy_edge = SAFE_MARGIN - abs(py)
+                    dx_edge = safe_margin - abs(px)
+                    dy_edge = safe_margin - abs(py)
                     F_rep = np.zeros(2)
                     if dx_edge < APF_INFLUENCE_DIST:
                         dx_eff = max(dx_edge, 1.0)
@@ -453,6 +547,10 @@ def main():
                             if ok:
                                 # Akustik mesafe: gönderenin bildirdiği konuma göre konum düzeltmesi
                                 anchor = consensus.get_received_nav(receiver, sender_name, sim_time)
+                                if receiver in avoiders and anchor is not None:
+                                    avoiders[receiver].update_contact(
+                                        sender_name, anchor[0], sim_time,
+                                        target=consensus.get_received_targets(receiver, sim_time=sim_time).get(sender_name))
                                 if (not args.no_range_aid and receiver in navigators
                                         and anchor is not None and parsed["range"] is not None):
                                     range_updates[receiver] += navigators[receiver].update_range(
