@@ -391,6 +391,8 @@ def main():
                     "target_x": target_pos[0] if target_pos is not None else 0.0,
                     "target_y": target_pos[1] if target_pos is not None else 0.0,
                     "status": stuck.status[name],
+                    "mission": "HOME" if at_home[name] else "RETURNING" if mission_done[name] else "MAPPING",
+                    "range_updates": range_updates[name],
                 }
 
                 if name in navigators and navigators[name].initialized:
@@ -489,7 +491,7 @@ def main():
                     range_updates=range_updates if navigators else None), flush=True)
 
             if dashboard and step % GUI_UPDATE_TICKS == 0:
-                dashboard.update(states, targets, comm_qual, "proposed")
+                dashboard.update(states, targets, comm_qual, "proposed", sim_time=sim_time)
 
             if logger:
                 logger.log(

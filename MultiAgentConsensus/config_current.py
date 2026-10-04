@@ -38,12 +38,11 @@ BAYESIAN_PTS  = 30         # güncelleme noktası sayısı (artırıldı)
 # CONSENSUS
 # ═══════════════════════════════════════════════════════════════
 CONSENSUS_EPS       = 0.3    # consensus kazancı
-CONSENSUS_MAX_CELLS = 45        # 27 + 45×5 = 252B < 256B
-CONSENSUS_THRESHOLD = 0.1    # değişim eşiği (|p - 0.5| > threshold)
 
-# Header: sender_id(uint8) + n_cells(uint16) + wp_x, wp_y + nav_x, nav_y, nav_z, nav_std (float32) = 27 byte
+# Beacon: 27 bayt header + kapsama bit haritası (256 baytlık modem paketi sınırı)
+# Header: sender_id(uint8) + n_bytes(uint16) + wp_x, wp_y + nav_x, nav_y, nav_z, nav_std (float32)
 BEACON_PACK_FMT     = "<BHffffff"
-BEACON_CELL_FMT     = "<HHB"    # uint16 row, uint16 col, uint8 prob
+BEACON_BLOCK        = 2      # bit haritasında bir bit = BLOCK x BLOCK hücre (80x80 -> 40x40 bit = 200 bayt)
 
 # ═══════════════════════════════════════════════════════════════
 # ENTROPY PLANNER
