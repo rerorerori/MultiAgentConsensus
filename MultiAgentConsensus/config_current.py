@@ -10,7 +10,7 @@ import os
 # ═══════════════════════════════════════════════════════════════
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HOLOOCEAN_DIR = os.path.dirname(BASE_DIR)
-SCENARIO_PATH = os.path.join(HOLOOCEAN_DIR, "worlds", "Ocean", "CooperativeMappingSwarm_2.json")
+SCENARIO_PATH = os.path.join(HOLOOCEAN_DIR, "worlds", "Ocean", "CooperativeMappingSwarm_3.json")
 AGENT_NAMES   = ["auv0", "auv1", "auv2"]
 TICKS_PER_SEC = 30
 
@@ -38,10 +38,11 @@ BAYESIAN_PTS  = 30         # güncelleme noktası sayısı (artırıldı)
 # CONSENSUS
 # ═══════════════════════════════════════════════════════════════
 CONSENSUS_EPS       = 0.3    # consensus kazancı
-CONSENSUS_MAX_CELLS = 48        # 11 + 48×5 = 251B < 256B
+CONSENSUS_MAX_CELLS = 45        # 27 + 45×5 = 252B < 256B
 CONSENSUS_THRESHOLD = 0.1    # değişim eşiği (|p - 0.5| > threshold)
 
-BEACON_PACK_FMT     = "<BHff"   # 11 byte header
+# Header: sender_id(uint8) + n_cells(uint16) + wp_x, wp_y + nav_x, nav_y, nav_z, nav_std (float32) = 27 byte
+BEACON_PACK_FMT     = "<BHffffff"
 BEACON_CELL_FMT     = "<HHB"    # uint16 row, uint16 col, uint8 prob
 
 # ═══════════════════════════════════════════════════════════════
@@ -72,7 +73,6 @@ STARTUP_GRACE_S       = 30.0
 POST_RECOVERY_GRACE_S = 15.0
 RECOVERY_DUR_S        = 5.0
 RECOVERY_HEADING_OFF  = 90.0
-RECOVERY_DEPTH_OFF    = 2.0
 RECOVERY_RPM          = 1200
 
 # ═══════════════════════════════════════════════════════════════
@@ -110,8 +110,10 @@ USE_OCEAN_CURRENT     = True
 # Ege Denizi İzmir Çeşme açıkları ortalama akıntı vektörü [Kuzey, Doğu, Dikey] (m/s)
 # Ege'de akıntı genel olarak güneye doğrudur (kuzey ivmesi negatiftir)
 BASE_CURRENT_NED      = np.array([-0.20, 0.10, 0.0])
-# Birinci derece Gauss-Markov türbülans gürültü parametreleri
-CURRENT_NOISE_VAR     = 0.02**2   # Türbülans gürültü varyansı (m^2/s^2)
+# Birinci derece Gauss-Markov türbülans parametreleri
+# CURRENT_NOISE_VAR sürecin difüzyon şiddetidir (sigma_c^2, m^2/s^3); durağan türbülans
+# standart sapması sqrt(CURRENT_NOISE_VAR * CURRENT_TAU / 2) ≈ 0.155 m/s (eksen başına).
+CURRENT_NOISE_VAR     = 0.02**2
 CURRENT_TAU           = 120.0     # Korelasyon zaman sabiti (saniye)
 
 # ═══════════════════════════════════════════════════════════════

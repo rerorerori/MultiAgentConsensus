@@ -1,7 +1,6 @@
 """
 Swarm AUV Configuration — Tüm ayarlanabilir parametreler.
 """
-import numpy as np
 
 # ═══════════════════════════════════════════════════════════════
 # SENARYO
@@ -39,14 +38,13 @@ BAYESIAN_PTS  = 30         # güncelleme noktası sayısı (artırıldı)
 # CONSENSUS
 # ═══════════════════════════════════════════════════════════════
 CONSENSUS_EPS       = 0.3    # consensus kazancı
-CONSENSUS_MAX_CELLS = 48        # 11 + 48×5 = 251B < 256B
+CONSENSUS_MAX_CELLS = 45        # 27 + 45×5 = 252B < 256B
 CONSENSUS_THRESHOLD = 0.1    # değişim eşiği (|p - 0.5| > threshold)
 
 # Binary packing (Subnero M25M 256 byte limit uyumu)
 # Her hücre: row(uint16) + col(uint16) + prob(uint8 0-255) = 5 byte
-# Header: sender_id(uint8) + n_cells(uint16) + wp_x(float32) + wp_y(float32) = 11 byte
-# Toplam: 11 + 48×5 = 251 byte < 256
-BEACON_PACK_FMT     = "<BHff"   # 11 byte header
+# Header: sender_id(uint8) + n_cells(uint16) + wp_x, wp_y + nav_x, nav_y, nav_z, nav_std (float32) = 27 byte
+BEACON_PACK_FMT     = "<BHffffff"
 BEACON_CELL_FMT     = "<HHB"    # uint16 row, uint16 col, uint8 prob
 
 # ═══════════════════════════════════════════════════════════════
@@ -77,7 +75,6 @@ STARTUP_GRACE_S       = 30.0
 POST_RECOVERY_GRACE_S = 15.0
 RECOVERY_DUR_S        = 5.0
 RECOVERY_HEADING_OFF  = 90.0
-RECOVERY_DEPTH_OFF    = 2.0
 RECOVERY_RPM          = 1200
 
 # ═══════════════════════════════════════════════════════════════
