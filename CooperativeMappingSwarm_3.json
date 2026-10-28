@@ -1,0 +1,530 @@
+{
+    "name": "CooperativeMappingSwarm",
+    "world": "OpenWater",
+    "package_name": "Ocean",
+    "main_agent": "auv0",
+    "ticks_per_sec": 30,
+    "frames_per_sec": true,
+    "octree_min": 0.1,
+    "octree_max": 25.0,
+    "agents": [
+        {
+            "agent_name": "auv0",
+            "agent_type": "TorpedoAUV",
+            "fossen_model": "torpedo",
+            "control_mode": "depthHeadingAutopilot",
+            "sensors": [
+                {
+                    "sensor_type": "DynamicsSensor",
+                    "sensor_name": "DynamicsSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "UseCOM": true,
+                        "UseRPY": false
+                    }
+                },
+                {
+                    "sensor_type": "PoseSensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "VelocitySensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "CollisionSensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "ImagingSonar",
+                    "socket": "SonarSocket",
+                    "Hz": 2,
+                    "configuration": {
+                        "RangeBins": 128,
+                        "AzimuthBins": 128,
+                        "RangeMin": 1.0,
+                        "RangeMax": 35.0,
+                        "Azimuth": 60,
+                        "Elevation": 30,
+                        "MultiPath": true,
+                        "ClusterSize": 5,
+                        "AddSigma": 0.03,
+                        "MultSigma": 0.08,
+                        "RangeSigma": 0.05,
+                        "ScaleNoise": true,
+                        "AzimuthStreaks": 0,
+                        "WaterDensity": 1025,
+                        "WaterSpeedSound": 1500,
+                        "ShowWarning": false
+                    }
+                },
+                {
+                    "sensor_type": "AcousticBeaconSensor",
+                    "configuration": {
+                        "id": 0,
+                        "MaxDistance": 500,
+                        "CheckVisible": true,
+                        "DistanceSigma": 1.5
+                    }
+                },
+                {
+                    "sensor_type": "IMUSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "AccelSigma": 0.0098,
+                        "AngVelSigma": 0.00087,
+                        "ReturnBias": true,
+                        "AccelBiasSigma": 0.0001,
+                        "AngVelBiasSigma": 5e-05
+                    }
+                },
+                {
+                    "sensor_type": "MagnetometerSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "Sigma": 0.0005
+                    }
+                },
+                {
+                    "sensor_type": "DVLSensor",
+                    "socket": "DVLSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "Elevation": 22.5,
+                        "VelSigma": 0.01,
+                        "ReturnRange": true,
+                        "MaxRange": 250,
+                        "RangeSigma": 0.05
+                    }
+                },
+                {
+                    "sensor_type": "SidescanSonar",
+                    "sensor_name": "SSS",
+                    "socket": "SonarSocket",
+                    "Hz": 5,
+                    "configuration": {
+                        "RangeBins": 512,
+                        "ShowDebug": false,
+                        "Azimuth": 170.0,
+                        "Elevation": 1.0,
+                        "RangeMin": 0.5,
+                        "RangeMax": 75.0,
+                        "InitOctreeRange": 100,
+                        "Octree": 0.1,
+                        "AddSigma": 0.025,
+                        "MultSigma": 0.06,
+                        "WaterDensity": 1025,
+                        "WaterSpeedSound": 1500,
+                        "ShowWarning": false
+                    }
+                },
+                {
+                    "sensor_type": "ProfilingSonar",
+                    "sensor_name": "MBES",
+                    "socket": "CameraSocket",
+                    "Hz": 2,
+                    "configuration": {
+                        "Beams": 256,
+                        "Elevation": 1.0,
+                        "Azimuth": 120.0,
+                        "RangeMin": 0.5,
+                        "RangeMax": 50.0,
+                        "InitOctreeRange": 75,
+                        "Octree": 0.2,
+                        "AddSigma": 0.02,
+                        "MultSigma": 0.05,
+                        "WaterDensity": 1025,
+                        "WaterSpeedSound": 1500,
+                        "ShowWarning": false
+                    }
+                },
+                {
+                    "sensor_type": "DepthSensor",
+                    "socket": "DepthSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "Sigma": 0.05
+                    }
+                }
+            ],
+            "control_scheme": 1,
+            "location": [
+                0.0,
+                0.0,
+                -150.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "autopilot": {
+                "depth": {
+                    "wn_d_z": 0.25,
+                    "Kp_z": 0.25,
+                    "T_z": 50.0,
+                    "Ki_theta": 1.0,
+                    "K_w": 2.0,
+                    "wn_d_theta": 0.5
+                },
+                "heading": {
+                    "wn_d": 0.5,
+                    "r_max": 0.1,
+                    "lam": 0.15,
+                    "phi_b": 0.08,
+                    "K_d": 1.0,
+                    "K_sigma": 0.08
+                }
+            }
+        },
+        {
+            "agent_name": "auv1",
+            "agent_type": "TorpedoAUV",
+            "fossen_model": "torpedo",
+            "control_mode": "depthHeadingAutopilot",
+            "sensors": [
+                {
+                    "sensor_type": "DynamicsSensor",
+                    "sensor_name": "DynamicsSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "UseCOM": true,
+                        "UseRPY": false
+                    }
+                },
+                {
+                    "sensor_type": "PoseSensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "VelocitySensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "CollisionSensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "ImagingSonar",
+                    "socket": "SonarSocket",
+                    "Hz": 2,
+                    "configuration": {
+                        "RangeBins": 128,
+                        "AzimuthBins": 128,
+                        "RangeMin": 1.0,
+                        "RangeMax": 35.0,
+                        "Azimuth": 60,
+                        "Elevation": 30,
+                        "MultiPath": true,
+                        "ClusterSize": 5,
+                        "AddSigma": 0.03,
+                        "MultSigma": 0.08,
+                        "RangeSigma": 0.05,
+                        "ScaleNoise": true,
+                        "AzimuthStreaks": 0,
+                        "WaterDensity": 1025,
+                        "WaterSpeedSound": 1500,
+                        "ShowWarning": false
+                    }
+                },
+                {
+                    "sensor_type": "AcousticBeaconSensor",
+                    "configuration": {
+                        "id": 1,
+                        "MaxDistance": 500,
+                        "CheckVisible": true,
+                        "DistanceSigma": 1.5
+                    }
+                },
+                {
+                    "sensor_type": "IMUSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "AccelSigma": 0.0098,
+                        "AngVelSigma": 0.00087,
+                        "ReturnBias": true,
+                        "AccelBiasSigma": 0.0001,
+                        "AngVelBiasSigma": 5e-05
+                    }
+                },
+                {
+                    "sensor_type": "MagnetometerSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "Sigma": 0.0005
+                    }
+                },
+                {
+                    "sensor_type": "DVLSensor",
+                    "socket": "DVLSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "Elevation": 22.5,
+                        "VelSigma": 0.01,
+                        "ReturnRange": true,
+                        "MaxRange": 250,
+                        "RangeSigma": 0.05
+                    }
+                },
+                {
+                    "sensor_type": "SidescanSonar",
+                    "sensor_name": "SSS",
+                    "socket": "SonarSocket",
+                    "Hz": 5,
+                    "configuration": {
+                        "RangeBins": 512,
+                        "ShowDebug": false,
+                        "Azimuth": 170.0,
+                        "Elevation": 1.0,
+                        "RangeMin": 0.5,
+                        "RangeMax": 75.0,
+                        "InitOctreeRange": 100,
+                        "Octree": 0.1,
+                        "AddSigma": 0.025,
+                        "MultSigma": 0.06,
+                        "WaterDensity": 1025,
+                        "WaterSpeedSound": 1500,
+                        "ShowWarning": false
+                    }
+                },
+                {
+                    "sensor_type": "ProfilingSonar",
+                    "sensor_name": "MBES",
+                    "socket": "CameraSocket",
+                    "Hz": 2,
+                    "configuration": {
+                        "Beams": 256,
+                        "Elevation": 1.0,
+                        "Azimuth": 120.0,
+                        "RangeMin": 0.5,
+                        "RangeMax": 50.0,
+                        "InitOctreeRange": 75,
+                        "Octree": 0.2,
+                        "AddSigma": 0.02,
+                        "MultSigma": 0.05,
+                        "WaterDensity": 1025,
+                        "WaterSpeedSound": 1500,
+                        "ShowWarning": false
+                    }
+                },
+                {
+                    "sensor_type": "DepthSensor",
+                    "socket": "DepthSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "Sigma": 0.05
+                    }
+                }
+            ],
+            "control_scheme": 1,
+            "location": [
+                0.0,
+                -60.0,
+                -150.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "autopilot": {
+                "depth": {
+                    "wn_d_z": 0.25,
+                    "Kp_z": 0.25,
+                    "T_z": 50.0,
+                    "Ki_theta": 1.0,
+                    "K_w": 2.0,
+                    "wn_d_theta": 0.5
+                },
+                "heading": {
+                    "wn_d": 0.5,
+                    "r_max": 0.1,
+                    "lam": 0.15,
+                    "phi_b": 0.08,
+                    "K_d": 1.0,
+                    "K_sigma": 0.08
+                }
+            }
+        },
+        {
+            "agent_name": "auv2",
+            "agent_type": "TorpedoAUV",
+            "fossen_model": "torpedo",
+            "control_mode": "depthHeadingAutopilot",
+            "sensors": [
+                {
+                    "sensor_type": "DynamicsSensor",
+                    "sensor_name": "DynamicsSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "UseCOM": true,
+                        "UseRPY": false
+                    }
+                },
+                {
+                    "sensor_type": "PoseSensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "VelocitySensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "CollisionSensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "ImagingSonar",
+                    "socket": "SonarSocket",
+                    "Hz": 2,
+                    "configuration": {
+                        "RangeBins": 128,
+                        "AzimuthBins": 128,
+                        "RangeMin": 1.0,
+                        "RangeMax": 35.0,
+                        "Azimuth": 60,
+                        "Elevation": 30,
+                        "MultiPath": true,
+                        "ClusterSize": 5,
+                        "AddSigma": 0.03,
+                        "MultSigma": 0.08,
+                        "RangeSigma": 0.05,
+                        "ScaleNoise": true,
+                        "AzimuthStreaks": 0,
+                        "WaterDensity": 1025,
+                        "WaterSpeedSound": 1500,
+                        "ShowWarning": false
+                    }
+                },
+                {
+                    "sensor_type": "AcousticBeaconSensor",
+                    "configuration": {
+                        "id": 2,
+                        "MaxDistance": 500,
+                        "CheckVisible": true,
+                        "DistanceSigma": 1.5
+                    }
+                },
+                {
+                    "sensor_type": "IMUSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "AccelSigma": 0.0098,
+                        "AngVelSigma": 0.00087,
+                        "ReturnBias": true,
+                        "AccelBiasSigma": 0.0001,
+                        "AngVelBiasSigma": 5e-05
+                    }
+                },
+                {
+                    "sensor_type": "MagnetometerSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "Sigma": 0.0005
+                    }
+                },
+                {
+                    "sensor_type": "DVLSensor",
+                    "socket": "DVLSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "Elevation": 22.5,
+                        "VelSigma": 0.01,
+                        "ReturnRange": true,
+                        "MaxRange": 250,
+                        "RangeSigma": 0.05
+                    }
+                },
+                {
+                    "sensor_type": "SidescanSonar",
+                    "sensor_name": "SSS",
+                    "socket": "SonarSocket",
+                    "Hz": 5,
+                    "configuration": {
+                        "RangeBins": 512,
+                        "ShowDebug": false,
+                        "Azimuth": 170.0,
+                        "Elevation": 1.0,
+                        "RangeMin": 0.5,
+                        "RangeMax": 75.0,
+                        "InitOctreeRange": 100,
+                        "Octree": 0.1,
+                        "AddSigma": 0.025,
+                        "MultSigma": 0.06,
+                        "WaterDensity": 1025,
+                        "WaterSpeedSound": 1500,
+                        "ShowWarning": false
+                    }
+                },
+                {
+                    "sensor_type": "ProfilingSonar",
+                    "sensor_name": "MBES",
+                    "socket": "CameraSocket",
+                    "Hz": 2,
+                    "configuration": {
+                        "Beams": 256,
+                        "Elevation": 1.0,
+                        "Azimuth": 120.0,
+                        "RangeMin": 0.5,
+                        "RangeMax": 50.0,
+                        "InitOctreeRange": 75,
+                        "Octree": 0.2,
+                        "AddSigma": 0.02,
+                        "MultSigma": 0.05,
+                        "WaterDensity": 1025,
+                        "WaterSpeedSound": 1500,
+                        "ShowWarning": false
+                    }
+                },
+                {
+                    "sensor_type": "DepthSensor",
+                    "socket": "DepthSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "Sigma": 0.05
+                    }
+                }
+            ],
+            "control_scheme": 1,
+            "location": [
+                0.0,
+                60.0,
+                -150.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "autopilot": {
+                "depth": {
+                    "wn_d_z": 0.25,
+                    "Kp_z": 0.25,
+                    "T_z": 50.0,
+                    "Ki_theta": 1.0,
+                    "K_w": 2.0,
+                    "wn_d_theta": 0.5
+                },
+                "heading": {
+                    "wn_d": 0.5,
+                    "r_max": 0.1,
+                    "lam": 0.15,
+                    "phi_b": 0.08,
+                    "K_d": 1.0,
+                    "K_sigma": 0.08
+                }
+            }
+        }
+    ],
+    "window_width": 1280,
+    "window_height": 720
+}

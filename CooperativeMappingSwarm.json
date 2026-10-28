@@ -1,0 +1,333 @@
+{
+    "name": "CooperativeMappingSwarm",
+    "world": "OpenWater",
+    "package_name": "Ocean",
+    "main_agent": "auv0",
+    "ticks_per_sec": 30,
+    "frames_per_sec": true,
+    "octree_min": 0.5,
+    "octree_max": 25.0,
+    "agents": [
+        {
+            "agent_name": "auv0",
+            "agent_type": "TorpedoAUV",
+            "fossen_model": "torpedo",
+            "control_mode": "depthHeadingAutopilot",
+            "sensors": [
+                {
+                    "sensor_type": "DynamicsSensor",
+                    "sensor_name": "DynamicsSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "UseCOM": true,
+                        "UseRPY": false
+                    }
+                },
+                {
+                    "sensor_type": "PoseSensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "VelocitySensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "CollisionSensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "ImagingSonar",
+                    "socket": "SonarSocket",
+                    "Hz": 2,
+                    "configuration": {
+                        "RangeBins": 128,
+                        "AzimuthBins": 128,
+                        "RangeMin": 1.0,
+                        "RangeMax": 35.0,
+                        "Azimuth": 60,
+                        "Elevation": 30
+                    }
+                },
+                {
+                    "sensor_type": "AcousticBeaconSensor",
+                    "configuration": {
+                        "id": 0,
+                        "MaxDistance": 500,
+                        "CheckVisible": true
+                    }
+                },
+                {
+                    "sensor_type": "IMUSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "AccelSigma": 0.0098,
+                        "AngVelSigma": 0.00087,
+                        "ReturnBias": true
+                    }
+                },
+                {
+                    "sensor_type": "DVLSensor",
+                    "socket": "DVLSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "Elevation": 22.5,
+                        "VelSigma": 0.01,
+                        "ReturnRange": true,
+                        "MaxRange": 100,
+                        "RangeSigma": 0.05
+                    }
+                },
+                {
+                    "sensor_type": "SidescanSonar",
+                    "sensor_name": "SSS",
+                    "socket": "SonarSocket",
+                    "Hz": 5,
+                    "configuration": {
+                        "RangeBins": 512,
+                        "ShowDebug": false,
+                        "Azimuth": 170.0,
+                        "Elevation": 1.0,
+                        "RangeMin": 0.5,
+                        "RangeMax": 75.0,
+                        "InitOctreeRange": 100,
+                        "Octree": 0.1
+                    }
+                },
+                {
+                    "sensor_type": "ProfilingSonar",
+                    "sensor_name": "MBES",
+                    "socket": "CameraSocket",
+                    "Hz": 2,
+                    "configuration": {
+                        "Beams": 256,
+                        "Elevation": 1.0,
+                        "Azimuth": 120.0,
+                        "RangeMin": 0.5,
+                        "RangeMax": 50.0,
+                        "InitOctreeRange": 75,
+                        "Octree": 0.2
+                    }
+                }
+            ],
+            "control_scheme": 1,
+            "location": [
+                0.0,
+                0.0,
+                -5.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        },
+        {
+            "agent_name": "auv1",
+            "agent_type": "TorpedoAUV",
+            "fossen_model": "torpedo",
+            "control_mode": "depthHeadingAutopilot",
+            "sensors": [
+                {
+                    "sensor_type": "DynamicsSensor",
+                    "sensor_name": "DynamicsSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "UseCOM": true,
+                        "UseRPY": false
+                    }
+                },
+                {
+                    "sensor_type": "PoseSensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "VelocitySensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "CollisionSensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "AcousticBeaconSensor",
+                    "configuration": {
+                        "id": 1,
+                        "MaxDistance": 500,
+                        "CheckVisible": true
+                    }
+                },
+                {
+                    "sensor_type": "IMUSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "AccelSigma": 0.0098,
+                        "AngVelSigma": 0.00087,
+                        "ReturnBias": true
+                    }
+                },
+                {
+                    "sensor_type": "DVLSensor",
+                    "socket": "DVLSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "Elevation": 22.5,
+                        "VelSigma": 0.01,
+                        "ReturnRange": true,
+                        "MaxRange": 100,
+                        "RangeSigma": 0.05
+                    }
+                },
+                {
+                    "sensor_type": "SidescanSonar",
+                    "sensor_name": "SSS",
+                    "socket": "SonarSocket",
+                    "Hz": 5,
+                    "configuration": {
+                        "RangeBins": 512,
+                        "ShowDebug": false,
+                        "Azimuth": 170.0,
+                        "Elevation": 1.0,
+                        "RangeMin": 0.5,
+                        "RangeMax": 75.0,
+                        "InitOctreeRange": 100,
+                        "Octree": 0.1
+                    }
+                },
+                {
+                    "sensor_type": "ProfilingSonar",
+                    "sensor_name": "MBES",
+                    "socket": "CameraSocket",
+                    "Hz": 2,
+                    "configuration": {
+                        "Beams": 256,
+                        "Elevation": 1.0,
+                        "Azimuth": 120.0,
+                        "RangeMin": 0.5,
+                        "RangeMax": 50.0,
+                        "InitOctreeRange": 75,
+                        "Octree": 0.2
+                    }
+                }
+            ],
+            "control_scheme": 1,
+            "location": [
+                0.0,
+                -60.0,
+                -5.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        },
+        {
+            "agent_name": "auv2",
+            "agent_type": "TorpedoAUV",
+            "fossen_model": "torpedo",
+            "control_mode": "depthHeadingAutopilot",
+            "sensors": [
+                {
+                    "sensor_type": "DynamicsSensor",
+                    "sensor_name": "DynamicsSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "UseCOM": true,
+                        "UseRPY": false
+                    }
+                },
+                {
+                    "sensor_type": "PoseSensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "VelocitySensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "CollisionSensor",
+                    "socket": "IMUSocket"
+                },
+                {
+                    "sensor_type": "AcousticBeaconSensor",
+                    "configuration": {
+                        "id": 2,
+                        "MaxDistance": 500,
+                        "CheckVisible": true
+                    }
+                },
+                {
+                    "sensor_type": "IMUSensor",
+                    "socket": "IMUSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "AccelSigma": 0.0098,
+                        "AngVelSigma": 0.00087,
+                        "ReturnBias": true
+                    }
+                },
+                {
+                    "sensor_type": "DVLSensor",
+                    "socket": "DVLSocket",
+                    "Hz": 30,
+                    "configuration": {
+                        "Elevation": 22.5,
+                        "VelSigma": 0.01,
+                        "ReturnRange": true,
+                        "MaxRange": 100,
+                        "RangeSigma": 0.05
+                    }
+                },
+                {
+                    "sensor_type": "SidescanSonar",
+                    "sensor_name": "SSS",
+                    "socket": "SonarSocket",
+                    "Hz": 5,
+                    "configuration": {
+                        "RangeBins": 512,
+                        "ShowDebug": false,
+                        "Azimuth": 170.0,
+                        "Elevation": 1.0,
+                        "RangeMin": 0.5,
+                        "RangeMax": 75.0,
+                        "InitOctreeRange": 100,
+                        "Octree": 0.1
+                    }
+                },
+                {
+                    "sensor_type": "ProfilingSonar",
+                    "sensor_name": "MBES",
+                    "socket": "CameraSocket",
+                    "Hz": 2,
+                    "configuration": {
+                        "Beams": 256,
+                        "Elevation": 1.0,
+                        "Azimuth": 120.0,
+                        "RangeMin": 0.5,
+                        "RangeMax": 50.0,
+                        "InitOctreeRange": 75,
+                        "Octree": 0.2
+                    }
+                }
+            ],
+            "control_scheme": 1,
+            "location": [
+                0.0,
+                60.0,
+                -5.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        }
+    ],
+    "window_width": 1280,
+    "window_height": 720
+}
